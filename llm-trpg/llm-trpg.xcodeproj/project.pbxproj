@@ -112,6 +112,9 @@
 			);
 			name = "llm-trpg";
 			packageProductDependencies = (
+				616D91BDC43B047E774333E8 /* GameCore */,
+				684337C0A7986802B4647A9B /* GameRules */,
+				55A360B0C6B0E6A2238605FC /* GameAI */,
 			);
 			productName = "llm-trpg";
 			productReference = 635749393057ED05005ED792 /* llm-trpg.app */;
@@ -195,6 +198,11 @@
 			);
 			mainGroup = 635749303057ED05005ED792;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */,
+				09D6CC1D6198FA62C6A0D5C6 /* XCLocalSwiftPackageReference "../Packages/GameRules" */,
+				51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6357493A3057ED05005ED792 /* Products */;
 			projectDirPath = "";
@@ -615,6 +623,39 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../Packages/GameCore";
+		};
+		09D6CC1D6198FA62C6A0D5C6 /* XCLocalSwiftPackageReference "../Packages/GameRules" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../Packages/GameRules";
+		};
+		51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../Packages/GameAI";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		616D91BDC43B047E774333E8 /* GameCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */;
+			productName = GameCore;
+		};
+		684337C0A7986802B4647A9B /* GameRules */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09D6CC1D6198FA62C6A0D5C6 /* XCLocalSwiftPackageReference "../Packages/GameRules" */;
+			productName = GameRules;
+		};
+		55A360B0C6B0E6A2238605FC /* GameAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */;
+			productName = GameAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 635749313057ED05005ED792 /* Project object */;
 }
