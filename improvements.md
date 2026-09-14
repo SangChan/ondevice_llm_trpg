@@ -45,3 +45,57 @@
   전체 앱 빌드 성공(패키지 그래프 resolve 포함)을 확인했다.
 - 아직 없음: `ActionResolver`/행동 칩/`ScenarioNarrator`/LLM 연동 — 설계 §40의
   2단계(Classic Mode)·3단계(AI Mode)에서 이어진다.
+
+---
+
+## Phase 2 — Classic Mode (설계 §40 2단계, 항목 11~17)
+
+### 문제
+
+GameCore만으로는 플레이할 방법이 없었다 — 자연어를 GameAction으로 바꿀 파서도,
+대상 문자열을 EntityID로 바꿀 Resolver도, 사건을 문장으로 바꿀 narrator도, 화면도
+없었다. LLM 없이 완결된 게임이 §40의 목표였는데, 그 전제가 되는 레이어 전체가
+비어 있었다.
+
+### 해결
+
+- `PlayerIntent`/`ActionResolver`/`ResolveResult`/`GameState.visible*(for:)`/
+  `ActionAffordance`를 `GameRules`에 추가했다(수정 지침 §13-D, §31-1). Resolver는
+  반드시 가시성 화이트리스트 안에서만 매칭하게 했다 — 존재하지 않는 대상에 대한
+  유일한 방어다.
+- `IntentParsing`/`Narrating` 프로토콜과 그 첫 구현체(`KeywordIntentParser`,
+  `TemplateNarrator`, `ScenarioNarrator`)를 `GameAI`에 추가했다(설계 §29). `GameAI`가
+  `GameRules`에 의존하도록 `Package.swift`를 갱신했다 — `PlayerIntent`를 만드는 쪽
+  (파서)과 소비하는 쪽(Resolver)이 같은 타입을 봐야 했기 때문이다.
+- 데미지 수치·주사위 눈은 어떤 narrator도 문장에 넣지 않는다(§36) — 숫자는 UI 몫,
+  서사는 narrator 몫이라는 경계를 코드로 강제했다.
+- `ScenarioNarrator`는 시나리오에 적힌 사건만 작가의 문장을 쓰고, 나머지는
+  `TemplateNarrator`로 흘려보낸다(§31 "1층/2층"). `ScenarioCondition`은 스키마
+  4종(`always`/`firstMeeting`/`hostile`/`friendly`)을 다 만들어 두되, 실제 선택 로직은
+  `.always`만 구현했다 — 나머지는 "이미 만난 적 있는가" 같은 상태 추적이 있어야
+  의미가 생기는데, 그 추적(§16 NPC Memory)은 5단계다. 지금 동작하지 않는 조건을
+  구현한 것처럼 보이지 않도록 이 파일에 명시해 둔다.
+- Forest Clearing–Dark Cave–Old Shrine 3개 장소, NPC 3명(Old Hunter/Goblin
+  Scout/Shrine Keeper)짜리 초안 시나리오를 `DefaultScenarioRepository`에 작성했다.
+  최종 분량·문장은 보강판 §41 미결 사항 1번대로 아직 확정이 아니다.
+- SwiftData 템플릿(`Item.swift`, `ContentView.swift`, `ModelContainer`)을 걷어내고
+  `Features/Game/{Repository,ViewModel,Views}` + `Core/Resources/AppResources.swift`로
+  교체했다. Repository/Engine/Parser/Narrator 생성은 `llm_trpgApp`(Composition Root)
+  한 곳에서만 한다 — View는 `GameViewModel`만 안다.
+- `GameViewModel`은 `@Observable`(iOS 26 타깃이라 조건 없이 사용 가능)이고, §34의
+  실패 분류(파싱 실패/ambiguous/notFound/unsupported)를 전부 여기서 흡수한다 —
+  어떤 경우도 에러 다이얼로그가 되지 않는다.
+
+### 결과
+
+- 이전: GameCore만 있고 실행 가능한 게임은 없었다.
+- 이후: `GameRules` 24개·`GameAI` 16개 단위 테스트(총 GameCore 포함 70개) 전부 통과.
+  `xcodebuild ... build`로 전체 앱 빌드 성공, 실제 iPhone 17 Pro 시뮬레이터에서
+  `xcodebuild test`(런치 테스트 포함) 통과, 시뮬레이터 스크린샷으로 시작 장소 묘사·
+  입력창·Send 버튼·칩 바 토글이 실제로 렌더링되는 것을 육안으로 확인했다.
+  **LLM 없이, 이 시점부터 처음부터 끝까지 플레이 가능한 게임이 존재한다** — §40이
+  2단계 종료 시점의 목표로 못 박은 지점이다.
+- 아직 없음: 저장/불러오기(4단계), 신고 UI·연령 등급(4단계), AI Mode 전체(3단계).
+  칩 UI는 자동화 테스트로 탭까지 확인하지 못했다(시뮬레이터 스크린샷으로 렌더링만
+  확인) — Phase 3에서 UIHostingController 기반 테스트를 붙일 때(체크리스트 §7)
+  같이 보강한다.
