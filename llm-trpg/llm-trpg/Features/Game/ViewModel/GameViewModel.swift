@@ -15,14 +15,21 @@ final class GameViewModel {
     private let narrator: any Narrating
     private let resolver = ActionResolver()
 
+    /// 세션 시작 시 한 번 정해진다 — 재시작 없이 중간에 바뀌지 않는다(§31, `SettingsKeys` 참고).
+    let playMode: PlayMode
+
     private(set) var transcript: [TranscriptEntry] = []
     private(set) var affordances: [ActionAffordance] = []
     var isChipBarExpanded = false
+    /// AI Mode에서 LLM 응답을 기다리는 동안 true. §34 "동시 요청 | 입력 비활성화" —
+    /// 세션은 동시 요청을 받지 못하므로 View가 이 값으로 입력을 잠가야 한다.
+    private(set) var isThinking = false
 
-    init(engine: GameEngine, parser: any IntentParsing, narrator: any Narrating) {
+    init(engine: GameEngine, parser: any IntentParsing, narrator: any Narrating, playMode: PlayMode) {
         self.engine = engine
         self.parser = parser
         self.narrator = narrator
+        self.playMode = playMode
     }
 
     /// 화면이 뜨면 한 번 호출한다 — 시작 장소를 묘사하고 초기 행동 칩을 채운다.
@@ -35,9 +42,13 @@ final class GameViewModel {
     /// 자유 텍스트 입력. 실패는 전부 여기서 흡수한다 — 게임을 멈추는 에러 다이얼로그는
     /// 만들지 않는다(수정 지침 §34).
     func submitFreeText(_ input: String) async {
+        guard !isThinking else { return }
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         transcript.append(TranscriptEntry(text: trimmed, kind: .player))
+
+        isThinking = true
+        defer { isThinking = false }
 
         let state = await engine.currentState
         let context = IntentContext(visibleEntities: state.visibleEntities(for: state.player.id))
@@ -52,8 +63,12 @@ final class GameViewModel {
 
     /// 칩 탭. 이미 EntityID까지 해석돼 있으므로 파싱도, 모호함도 구조적으로 없다(§31-1).
     func tapAffordance(_ affordance: ActionAffordance) async {
+        guard !isThinking else { return }
         let state = await engine.currentState
         transcript.append(TranscriptEntry(text: state.playerSentence(for: affordance.action), kind: .player))
+
+        isThinking = true
+        defer { isThinking = false }
         await execute(affordance.action)
     }
 
@@ -82,14 +97,7 @@ final class GameViewModel {
         let result = await engine.execute(action)
         let state = await engine.currentState
 
-        let context = NarrationContext(
-            playerID: state.player.id,
-            locationName: state.locations[state.player.location]?.name ?? "",
-            recentEvents: result.events,
-            entityNames: Self.entityNames(in: state)
-        )
-
-        if let text = try? await narrator.narrate(context) {
+        if let text = try? await narrator.narrate(Self.narrationContext(recentEvents: result.events, in: state)) {
             transcript.append(TranscriptEntry(text: text, kind: .narrator))
         }
 
@@ -101,13 +109,7 @@ final class GameViewModel {
     private func narrateArrival() async {
         let state = await engine.currentState
         let arrival = GameEvent.moved(actor: state.player.id, from: state.player.location, to: state.player.location)
-        let context = NarrationContext(
-            playerID: state.player.id,
-            locationName: state.locations[state.player.location]?.name ?? "",
-            recentEvents: [arrival],
-            entityNames: Self.entityNames(in: state)
-        )
-        if let text = try? await narrator.narrate(context) {
+        if let text = try? await narrator.narrate(Self.narrationContext(recentEvents: [arrival], in: state)) {
             transcript.append(TranscriptEntry(text: text, kind: .narrator))
         }
     }
@@ -115,6 +117,17 @@ final class GameViewModel {
     private func refreshAffordances() async {
         let state = await engine.currentState
         affordances = state.affordances(for: state.player.id)
+    }
+
+    private static func narrationContext(recentEvents: [GameEvent], in state: GameState) -> NarrationContext {
+        NarrationContext(
+            playerID: state.player.id,
+            locationName: state.locations[state.player.location]?.name ?? "",
+            recentEvents: recentEvents,
+            entityNames: entityNames(in: state),
+            playerStatus: "HP \(max(0, state.player.stats.hp))/\(state.player.stats.maxHP)",
+            visibleNPCNames: Array(state.visibleNPCs(for: state.player.id).values).sorted()
+        )
     }
 
     private static func entityNames(in state: GameState) -> [EntityID: String] {

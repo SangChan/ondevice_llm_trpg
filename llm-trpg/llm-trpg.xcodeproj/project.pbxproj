@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		635749A3305800C2005ED792 /* GameCore in Frameworks */ = {isa = PBXBuildFile; productRef = 616D91BDC43B047E774333E8 /* GameCore */; };
+		635749A4305800C2005ED792 /* GameRules in Frameworks */ = {isa = PBXBuildFile; productRef = 684337C0A7986802B4647A9B /* GameRules */; };
+		635749A5305800C2005ED792 /* GameAI in Frameworks */ = {isa = PBXBuildFile; productRef = 55A360B0C6B0E6A2238605FC /* GameAI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		635749493057ED07005ED792 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +58,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				635749A5305800C2005ED792 /* GameAI in Frameworks */,
+				635749A4305800C2005ED792 /* GameRules in Frameworks */,
+				635749A3305800C2005ED792 /* GameCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -625,21 +634,26 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../Packages/GameCore";
-		};
 		09D6CC1D6198FA62C6A0D5C6 /* XCLocalSwiftPackageReference "../Packages/GameRules" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../Packages/GameRules";
+			relativePath = ../Packages/GameRules;
 		};
 		51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../Packages/GameAI";
+			relativePath = ../Packages/GameAI;
+		};
+		BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../Packages/GameCore;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		55A360B0C6B0E6A2238605FC /* GameAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */;
+			productName = GameAI;
+		};
 		616D91BDC43B047E774333E8 /* GameCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BD8CE08429BC61EA57281EAF /* XCLocalSwiftPackageReference "../Packages/GameCore" */;
@@ -649,11 +663,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 09D6CC1D6198FA62C6A0D5C6 /* XCLocalSwiftPackageReference "../Packages/GameRules" */;
 			productName = GameRules;
-		};
-		55A360B0C6B0E6A2238605FC /* GameAI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 51A5E2526258FD669467A18F /* XCLocalSwiftPackageReference "../Packages/GameAI" */;
-			productName = GameAI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
