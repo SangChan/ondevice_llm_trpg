@@ -99,3 +99,35 @@ GameCore만으로는 플레이할 방법이 없었다 — 자연어를 GameActio
   칩 UI는 자동화 테스트로 탭까지 확인하지 못했다(시뮬레이터 스크린샷으로 렌더링만
   확인) — Phase 3에서 UIHostingController 기반 테스트를 붙일 때(체크리스트 §7)
   같이 보강한다.
+
+---
+
+## Phase 2 보강 — 시나리오에 목표·결말 부여
+
+### 문제
+
+"2단계 종료 시점에 이미 출시 가능한 게임이 존재한다"고 보고했지만, 실제 콘텐츠는
+장소 묘사 3줄 + NPC 인사말 1줄씩 + 사망 대체문 1개뿐이었다. 목표도 결말도 없어서
+왜 동굴에 가는지, 뭘 하면 끝나는지 알 수 없는 샌드박스였다 — "게임이 존재한다"는
+표현이 이 공백을 가렸다. 사용자가 직접 확인하고 지적했다.
+
+### 해결
+
+- 지금 엔진이 실제로 처리하는 두 경로(`ScenarioScript.npcLines`의 `.always` 대사,
+  `eventOverrides`의 `.npcDefeated` 대체문)만으로 목표→갈등→결말이 있는 최소 아크를
+  썼다: Old Hunter가 고블린 처치를 부탁 → 고블린 처치 시 결말성 문장 출력.
+  지원되지 않는 조건(퀘스트 완료 후 대사 변경, Shrine Keeper의 역할)은 **쓰지 않고**
+  `// TODO(scenario):`/`// TODO(engineering):`으로 남겼다 — Xcode 점프 바에서 바로
+  보이도록 실제 TODO 태그 문법을 썼다.
+- "안 되는 걸 되는 것처럼" 보이지 않도록, `ScenarioNarrator.scriptedLine(for:)`
+  쪽에도 대칭되는 TODO를 남겨 콘텐츠 파일과 엔진 파일 양쪽에서 같은 공백이 보이게
+  했다.
+
+### 결과
+
+- 이전: 목표·결말 없는 샌드박스, 기능은 있으나 "게임"이라 부르기엔 부족.
+- 이후: Old Hunter의 브리핑 → 고블린 처치 → 결말 문장으로 이어지는 최소 아크 존재.
+  `firstMeeting`/`hostile`/`friendly` 조건별 대사, 퀘스트 완료 후 NPC 반응 변화,
+  Shrine Keeper의 역할은 여전히 없음 — 코드 세 곳(`ScenarioRepository.swift` 헤더,
+  `npcLines`/`eventOverrides` 인라인, `ScenarioNarrator.swift`)에 TODO로 명시.
+  `swift test`(GameAI 16개) 및 전체 앱 빌드 재확인 통과.

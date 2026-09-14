@@ -42,6 +42,10 @@ public struct ScenarioNarrator: Narrating {
         case .moved(_, _, let to):
             return script.locationDescriptions[to]
         case .talked(_, let target, _):
+            // TODO: `.always`만 고른다 — `.firstMeeting`/`.hostile`/`.friendly`로 대사를
+            // 갈아끼우려면 "이미 만난 적 있는가/현재 disposition" 같은 상태가 필요하다.
+            // 그 상태를 어디서 추적할지는 아직 결정 안 됨(§16 NPC Memory, 5단계 예정).
+            // ScenarioRepository.swift 파일 헤더의 TODO(scenario)와 같은 이슈.
             return script.npcLines[target]?.first(where: { $0.condition == .always })?.text
         case .entityDied(let entity):
             return script.eventOverrides[.npcDefeated(entity)]
