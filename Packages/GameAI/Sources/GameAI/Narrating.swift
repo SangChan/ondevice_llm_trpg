@@ -11,12 +11,26 @@ public struct NarrationContext: Sendable {
     /// 사건 속 EntityID를 사람이 읽을 이름으로 바꾸기 위한 표. 없는 ID는 narrator가
     /// 알아서 대명사로 대체한다.
     public let entityNames: [EntityID: String]
+    /// "HP 18/20"처럼 UI가 이미 보여주는 수치를 문장으로 옮긴 것. Classic Mode
+    /// narrator(Template/Scenario)는 안 쓰고, `ContextBuilder`(AI Mode, §36)가 쓴다.
+    public let playerStatus: String
+    /// 같은 장소의 NPC 이름 목록. AI Mode 프롬프트의 "Visible NPCs" 절에만 쓰인다.
+    public let visibleNPCNames: [String]
 
-    public init(playerID: EntityID, locationName: String, recentEvents: [GameEvent], entityNames: [EntityID: String]) {
+    public init(
+        playerID: EntityID,
+        locationName: String,
+        recentEvents: [GameEvent],
+        entityNames: [EntityID: String],
+        playerStatus: String = "",
+        visibleNPCNames: [String] = []
+    ) {
         self.playerID = playerID
         self.locationName = locationName
         self.recentEvents = recentEvents
         self.entityNames = entityNames
+        self.playerStatus = playerStatus
+        self.visibleNPCNames = visibleNPCNames
     }
 }
 

@@ -7,7 +7,9 @@ import PackageDescription
 // 거꾸로는 아무도 이 모듈을 모른다 (설계 §29, §37).
 let package = Package(
     name: "GameAI",
-    platforms: [.iOS(.v26), .macOS(.v15)],
+    // macOS(.v15)로는 `import FoundationModels`가 이 SDK에서 존재하지 않는다 — 실제로
+    // 빌드해서 확인한 최소값이 macOS 26이다(Phase 3 도입 시점에 검증).
+    platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "GameAI", targets: ["GameAI"])
     ],
