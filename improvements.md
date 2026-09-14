@@ -131,3 +131,68 @@ GameCore만으로는 플레이할 방법이 없었다 — 자연어를 GameActio
   Shrine Keeper의 역할은 여전히 없음 — 코드 세 곳(`ScenarioRepository.swift` 헤더,
   `npcLines`/`eventOverrides` 인라인, `ScenarioNarrator.swift`)에 TODO로 명시.
   `swift test`(GameAI 16개) 및 전체 앱 빌드 재확인 통과.
+
+---
+
+## Phase 3 — AI Mode (설계 §40 3단계, 항목 18~24)
+
+### 문제
+
+Classic Mode(2단계)는 완결돼 있었지만 LLM이 전혀 얹혀 있지 않았다. `availability`
+분기, guided generation, guardrail/컨텍스트 초과 복구, 세션 관리 중 아무것도 없었다.
+
+### 해결
+
+- `PlayMode.resolve(from:)`(§31), `ContextBuilder`(+`TokenBudget`/`TokenEstimator`,
+  §36), `ParsedIntent`(`@Generable`)+`FoundationModelsIntentParser`(§30),
+  `NarrationSessionManager`(§32), `ChainedIntentParser`/`ResilientNarrator`(§29,
+  §33)를 `GameAI`에 추가했다. 실제 API 시그니처(`LanguageModelSession.respond(to:generating:)`,
+  `GenerationError` 케이스 등)는 추측하지 않고 이 Mac(Xcode 26.6, macOS 26 SDK)에서
+  스크래치 패키지로 직접 컴파일해 확인한 뒤 옮겨 적었다 — 전부 문서 예시와 정확히 일치했다.
+- `GameAI`의 macOS 최소 버전을 `.v15`→`.v26`으로 올렸다 — `import FoundationModels`가
+  `.v15`에서는 아예 존재하지 않는다는 걸 빌드해서 확인했다.
+- `NarrationSessionManager`가 실제로 `Narrating`의 "FoundationModelsNarrator" 역할을
+  겸한다 — 설계 §29 표는 별도 타입처럼 그리지만, §32의 실제 코드가 이미
+  `Narrating` 시그니처와 같아서 별도 wrapper를 만들면 순수 중복이 된다. `RecordingNarrator`
+  (골든 파일 녹화용)는 Phase 3 항목 18~24에 없어 이번엔 만들지 않았다.
+- App 레이어: `PlayMode`에 따라 Composition Root가 parser/narrator 조합을 바꾼다.
+  `.userChoice`(설정에서 Classic 강제)는 재시작이 있어야 반영된다 — 세션 중간에
+  `LanguageModelSession`/actor를 안전하게 바꿔 끼우는 로직은 만들지 않았다(TODO로 명시).
+  `GameViewModel.isThinking`으로 동시 요청 중 입력을 잠근다(§34).
+
+### 발견한 버그 — FoundationModels 호출이 무기한 멈출 수 있다
+
+빌드는 전부 성공했지만 시뮬레이터에서 실행하니 시작 서사가 영원히 안 나왔다.
+`os.Logger`로 추적한 결과: 시뮬레이터의 `SystemLanguageModel.default.availability`가
+`.available`을 보고했고(AI Mode로 분기), 실제 `session.respond(to:)` 호출이 **throw도
+return도 없이 그냥 멈췄다.** `ResilientNarrator`는 catch로만 폴백하므로 애초에
+에러가 안 나면 폴백이 작동하지 않는다 — 게임이 "절대 멈추지 않는다"는 원칙(§29, §33)이
+실제로 깨지는 경로였다.
+
+**해결**: `AITimeout.swift`(`withAITimeout`)로 `ResilientNarrator.primary`와
+`ChainedIntentParser.fallback` 호출에 각각 12초/8초 상한을 걸었다. 둘 다 설계
+문서에 없는 임의값이다 — 실기기 체감 지연을 보고 나중에 조정해야 한다. 타임아웃도
+결국 `catch`로 들어오므로 기존 폴백 경로를 그대로 탄다. 짧은 타임아웃(0.05초)으로
+행 테스트 2개를 추가해 실제로 재현·고정했다.
+
+이 버그는 addendum이 이미 "시뮬레이터 신뢰 불가"(§33)라고 경고한 지점과 정확히
+겹친다 — 다만 그 경고는 "guardrail 통과율 측정에 시뮬레이터를 쓰지 마라"는
+맥락이었지, "시뮬레이터가 무기한 행을 유발할 수 있다"까지는 명시하지 않았었다.
+타임아웃 보호가 없었다면 실기기에서도 동일한 클래스의 문제(네트워크 없는 순수
+온디바이스 모델이라도 첫 로딩·다운로드 대기 중 유사 지연 가능성)가 게임을 완전히
+멈출 수 있었다 — 그래서 이건 "시뮬레이터 한정 워크어라운드"가 아니라 구조적 수정으로
+넣었다.
+
+### 결과
+
+- 이전: LLM이 없었다. Classic Mode만 존재.
+- 이후: `GameAI` 31개 단위 테스트(총 GameCore 30 + GameRules 24 + GameAI 31 = 85개)
+  전부 통과. 전체 앱 빌드 성공(clean build로 재확인). 시뮬레이터에서 실제 실행 →
+  AI Mode로 분기 → primary(FoundationModels) 타임아웃 → fallback(ScenarioNarrator)
+  으로 정상적으로 시작 서사가 나오는 것까지 스크린샷으로 확인했다.
+- 자동 테스트가 없는 부분(설계 §37 원칙대로 의도적): `FoundationModelsIntentParser.parse`/
+  `NarrationSessionManager` 자체의 실제 생성 결과 — 실기기 하니스·골든 파일 몫이다.
+  0주차 guardrail Spike도 여전히 미실행.
+- 남은 TODO: 세션 요약 기반 사전 예방(`turnsSinceReset`은 있지만 요약을 만들지 않음),
+  guardrail/타임아웃 발생률 메트릭 누적, `.userChoice` 재시작 없는 라이브 전환,
+  `RecordingNarrator`.
