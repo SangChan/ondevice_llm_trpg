@@ -38,6 +38,32 @@ WebGPU를 지원하는 브라우저에서는 선택할 수 있다.
 | SmolLM2-360M-Instruct | ~250MB | 기본값. 속도/문장 균형. |
 | Qwen2.5-0.5B-Instruct | ~400MB | 문장이 가장 낫다. wasm에서는 느리다. |
 
+## 배포
+
+정적 파일뿐이라 서버가 필요 없다. 경로는 전부 상대 경로라 `/<repo>/` 같은 서브패스에서도
+그대로 동작한다.
+
+**GitHub Pages** — `.github/workflows/deploy-web.yml`이 이미 들어 있다. 저장소
+Settings → Pages → Source를 **GitHub Actions**로 한 번 바꿔 두면, `web/**`이 바뀐 채로
+`main`에 푸시될 때마다 배포된다. 워크플로는 `npm ci` → `npm test`(WASM 재빌드 + 테스트
+35개) → 서빙할 파일만 모아 업로드한다. 올라가는 것은 `index.html`, `styles.css`, `src/`,
+`build/game_core.{js,wasm}` — 약 140KB다.
+
+**다른 정적 호스트** — Cloudflare Pages / Netlify / Vercel도 그대로 된다. 빌드 명령은
+`cd web && npm ci && npm run build`, 퍼블리시 디렉터리는 `web`(단, `node_modules`를 제외할
+수 없는 호스트라면 위 워크플로처럼 필요한 파일만 따로 모아야 한다).
+
+호스팅 쪽에서 신경 쓸 것:
+
+- **HTTPS 필수** — ES 모듈과 모듈 워커는 `file://`로 열면 뜨지 않는다. 로컬 확인은
+  `npm start`(http://localhost:4173).
+- **`.wasm`은 `application/wasm`으로** — GitHub Pages·Cloudflare·Netlify는 기본으로 맞다.
+- **모델은 우리가 호스팅하지 않는다** — Transformers.js가 Hugging Face Hub에서 직접 받아
+  방문자 브라우저에 캐시한다. 첫 화면은 Classic Mode라 아무것도 내려받지 않고, AI Mode를
+  켠 사람만 다운로드한다.
+- **COOP/COEP는 걸지 않았다** — 걸면 onnxruntime이 멀티스레드로 돌지만 CDN 로딩이 까다로워진다.
+  GitHub Pages는 헤더를 못 넣으므로 어차피 불가능하고, 속도가 필요하면 WebGPU를 고르는 편이 낫다.
+
 ## 구조
 
 ```
