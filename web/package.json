@@ -1,0 +1,16 @@
+{
+  "name": "ondevice-llm-trpg-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web port of the on-device LLM TRPG: deterministic rules in WebAssembly, narration in Transformers.js.",
+  "scripts": {
+    "build": "asc assembly/index.ts --config asconfig.json --target release",
+    "test": "npm run build && node --test",
+    "dev": "node server.mjs",
+    "start": "npm run build && node server.mjs"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.20"
+  }
+}

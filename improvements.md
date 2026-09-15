@@ -196,3 +196,73 @@ return도 없이 그냥 멈췄다.** `ResilientNarrator`는 catch로만 폴백�
 - 남은 TODO: 세션 요약 기반 사전 예방(`turnsSinceReset`은 있지만 요약을 만들지 않음),
   guardrail/타임아웃 발생률 메트릭 누적, `.userChoice` 재시작 없는 라이브 전환,
   `RecordingNarrator`.
+
+---
+
+## Web Port — WASM 규칙 엔진 + Transformers.js (`web/`)
+
+설계 §40의 단계(iOS)와는 별개 트랙이다. iOS 앱은 그대로 두고, 같은 설계를 브라우저에서
+증명한다.
+
+### 문제
+
+이 프로젝트의 주장("규칙은 결정론, 표현은 생성, 표현은 실패해도 게임은 멈추지 않는다")은
+Apple Foundation Models와 iOS 26 기기가 있어야만 확인할 수 있었다. 설계의 핵심이
+플랫폼이 아니라 경계에 있다면, 런타임을 갈아끼워도 같은 게임이 나와야 한다.
+
+### 해결
+
+- `Packages/GameCore` + `Packages/GameRules`를 AssemblyScript로 포팅해 WASM 하나로
+  컴파일했다(`web/assembly/index.ts` → `build/game_core.wasm`, 약 30KB). 폴더가 아니라
+  **모듈 경계**가 원칙을 강제한다는 점은 SPM 타겟 분리와 같다 — JS는 `execute`/`snapshot`/
+  `affordances` 말고는 세계에 접근할 방법이 없다.
+- LLM 자리에 Transformers.js(SmolLM2 135M/360M, Qwen2.5 0.5B, ONNX q4)를 넣고 워커에서
+  돌린다. 백엔드 기본값은 WebAssembly, WebGPU는 선택이다.
+- `KeywordIntentParser`/`ChainedIntentParser`/`ActionResolver`/`TemplateNarrator`/
+  `ScenarioNarrator`/`ResilientNarrator`/`ContextBuilder`/`DMInstructions`를 같은 이름·같은
+  경계로 옮겼다. 자유 입력은 여전히 가시성 화이트리스트 안에서만 EntityID가 된다.
+- iOS와 의도적으로 다른 점 3가지:
+  1. `EntityID`가 UUID 대신 순증 i32다(불투명 핸들이라는 성질은 동일).
+  2. 실패한 행동에 `actionRejected` 이벤트를 하나 실어 보낸다. Swift 엔진은 빈 배열을
+     돌려주는데, 그러면 narrator가 "Nothing happens."만 말한다.
+  3. narrator를 3층으로 쌓았다 — 작가의 문장이 있는 사건은 그대로 쓰고, 나머지만 LLM이
+     쓰고, LLM이 실패하면 템플릿이 받는다. 브라우저에서 돌릴 수 있는 크기의 모델에게
+     장소 묘사까지 맡기면 작가의 문장만 잃는다.
+- 실측에서 135M 모델이 `[HP 30/20]` 같은 수치를 지어냈다. 고쳐 쓰지 않고 **실패로
+  취급**한다(`usableNarration`: 숫자 포함·프롬프트 반향·미완성 문장 → throw →
+  `ResilientNarrator`가 작가의 문장으로 대체). 잘못된 서사보다 정확한 시나리오 문장이 낫다.
+
+### 실제로 띄워 보고 고친 것
+
+- **`hidden` 속성이 먹지 않았다.** `.settings`/`.chips-list`에 `display: flex`를 주는 순간
+  작성자 스타일이 UA의 `[hidden] { display: none }`을 이긴다. Settings 패널이 첫 화면부터
+  게임을 덮고 있었고 Done을 눌러도 닫히지 않았다. `[hidden] { display: none !important }`
+  한 줄로 해결.
+- **같은 모델을 동시에 두 번 내려받을 수 있었다.** 모드 라디오와 Load 버튼이 둘 다
+  `load()`를 부르는데 워커가 메시지를 직렬화하지 않아 `pipeline()`이 두 번 시작되고,
+  먼저 건 promise는 영영 풀리지 않았다(= "다운로드가 멈춤"). 같은 요청은 같은 promise로
+  합류시키고 워커 메시지를 직렬 처리한다. 회귀 테스트 2개 추가.
+- **모델 로딩 표시가 거짓말을 했다.** 파일별 퍼센트만 보여줘서 40초짜리 단일 파일이
+  멈춘 것처럼 보이고, 다운로드 뒤 세션 생성 구간에는 이벤트가 0개라 완전히 정지한 것처럼
+  보였다. 바이트 합산 막대 + 불확정 애니메이션 + 경과 초 + 20초 무응답 시 안내로 바꿨다.
+- **LLM 문장이 끝에서 잘렸다.** 원인이 두 개였다. (1) `max_new_tokens=72`가 두 번째
+  문장 중간에서 생성을 끊었다. (2) 화면에는 모델 출력을 날것으로 흘려보내 놓고 최종본은
+  2문장으로 다듬어서, 방금 읽던 문장이 사라졌다. 필요한 문장 수를 채우면
+  `InterruptableStoppingCriteria`로 생성을 멈추고(천장은 128로 올림), 스트리밍과
+  최종본이 `narrationText()` 하나를 공유하게 했다. 숫자가 섞였을 때도 서사 전체가 아니라
+  그 문장만 버린다 — 3문장 중 하나 때문에 나머지를 잃을 이유가 없다.
+- **서사 스트리밍이 떨렸다.** 토큰마다 트랜스크립트를 통째로 다시 만들어 모든 말풍선의
+  등장 애니메이션이 매번 재생됐다. 노드를 id로 재사용하고, 갱신을 50ms로 묶고,
+  `scroll-behavior: smooth`를 뺐다(매 토큰 스크롤 목표가 갱신되며 출렁였다).
+  `requestAnimationFrame`으로 묶는 방식은 쓰지 않았다 — 배경 탭에서 멈춘다.
+
+### 결과
+
+- `npm test` 35개 통과: WASM 엔진 13개(이동/관찰/전투/반격/아이템/실패/행동 칩/시드
+  리플레이) + 파서·Resolver·narrator·LLM 클라이언트 22개. 모델 다운로드 없이 돈다.
+- 헤드리스 Chrome에서 실제 UI를 iframe으로 띄워 구동 확인: 설정 열고 닫기, 행동 칩 탭,
+  자유 입력 → WASM 판정 → NPC 반격(HP 18/20, turn 2) → 칩 갱신까지 정상. AI Mode는
+  SmolLM2-360M q4 기준 다운로드 41초 + 세션 생성 1.2초 후 4턴 플레이 확인.
+- 아직 없는 것: 세이브/로드(리플레이 전제는 갖췄지만 상태를 내보내는 경로 없음),
+  NPC 기억(`ScenarioCondition`은 `always`만 선택 — iOS와 동일), COOP/COEP 미설정이라
+  onnxruntime은 단일 스레드 wasm으로 돈다.

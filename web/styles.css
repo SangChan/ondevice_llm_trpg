@@ -1,0 +1,531 @@
+:root {
+  --bg: #12100e;
+  --surface: #1b1815;
+  --surface-raised: #241f1a;
+  --border: #3a322a;
+  --text: #ece4d8;
+  --text-dim: #a4988a;
+  --accent: #d9a441;
+  --accent-soft: rgba(217, 164, 65, 0.16);
+  --player: #6fa8c7;
+  --danger: #c05b4d;
+  --radius: 12px;
+  --font: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 작성자 스타일의 display가 UA의 [hidden] 규칙을 이긴다 — .settings/.chips-list처럼
+   display를 지정한 요소는 이 선언 없이는 hidden 속성으로 숨길 수 없다. */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% -10%, #241d16 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 820px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-inline: 1px solid var(--border);
+}
+
+/* Top bar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.brand h1 {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 19px;
+  letter-spacing: 0.02em;
+}
+
+.brand-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.badge-ai {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Banner */
+
+.banner {
+  margin: 0;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Status strip */
+
+.status {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.status-hp {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.status-value {
+  font-family: var(--font);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #2f2721;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #8fb37a, #cfd47a);
+  transition: width 240ms ease;
+}
+
+.hp-fill.low {
+  background: linear-gradient(90deg, #c05b4d, #d98341);
+}
+
+/* Transcript */
+
+.transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* 스트리밍 중에는 매 프레임 바닥으로 스크롤한다. smooth를 켜두면 목표가 계속 갱신되면서
+     화면이 출렁인다. */
+  overflow-anchor: none;
+}
+
+.entry {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  animation: rise 180ms ease;
+}
+
+.entry-narrator {
+  align-self: flex-start;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 16px;
+}
+
+.entry-player {
+  align-self: flex-end;
+  background: rgba(111, 168, 199, 0.14);
+  border: 1px solid rgba(111, 168, 199, 0.35);
+  color: #cfe6f2;
+  font-size: 15px;
+}
+
+.entry-streaming::after {
+  content: "▍";
+  color: var(--accent);
+  animation: blink 900ms steps(2, start) infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.thinking {
+  align-self: flex-start;
+  display: flex;
+  gap: 5px;
+  padding: 10px 14px;
+}
+
+.thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: bounce 1s infinite ease-in-out;
+}
+
+.thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Chips */
+
+.chips {
+  border-top: 1px solid var(--border);
+  padding: 10px 18px;
+  background: var(--surface-raised);
+}
+
+.chips-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.engine-note {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.chip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Composer */
+
+.composer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.composer input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 15px;
+  font-family: var(--font-ui);
+}
+
+.composer input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Buttons */
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.composer button,
+.primary {
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #1b1408;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ghost {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.small {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* Settings */
+
+.settings {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 5, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.settings-panel {
+  width: min(460px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.settings-head h2 {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin: 12px 0 0;
+}
+
+legend {
+  padding: 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.radio + .radio {
+  border-top: 1px solid var(--border);
+}
+
+.radio strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.radio em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+select {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-ui);
+}
+
+.progress {
+  margin-top: 10px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2f2721;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+/* 퍼센트를 알 수 없는 구간(세션 생성)에서는 막대가 흐르게 둔다 — 0%로 멈춰 있는 것보다
+   정직하다. */
+.progress.indeterminate .progress-fill {
+  width: 35%;
+  transition: none;
+  animation: drift 1.2s ease-in-out infinite;
+}
+
+@keyframes drift {
+  from {
+    margin-left: -35%;
+  }
+  to {
+    margin-left: 100%;
+  }
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.hint.error {
+  color: var(--danger);
+}
+
+@media (max-width: 560px) {
+  .status {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .entry {
+    max-width: 96%;
+  }
+}

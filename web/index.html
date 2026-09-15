@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>On-Device TRPG — WASM rules, in-browser DM</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎲</text></svg>" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">🎲</span>
+          <div>
+            <h1>On-Device TRPG</h1>
+            <p class="brand-sub">Rules in WebAssembly · Narration in Transformers.js</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="mode-badge" class="badge badge-classic">Classic Mode</span>
+          <button id="settings-button" type="button" class="ghost">Settings</button>
+        </div>
+      </header>
+
+      <p id="banner" class="banner" hidden></p>
+
+      <section class="status" aria-label="Player status">
+        <div class="status-cell">
+          <span class="status-label">Location</span>
+          <span id="status-location" class="status-value">—</span>
+        </div>
+        <div class="status-cell status-hp">
+          <span class="status-label">HP</span>
+          <div class="hp-bar" role="img" aria-label="Health">
+            <div id="hp-fill" class="hp-fill"></div>
+          </div>
+          <span id="status-hp" class="status-value">—</span>
+        </div>
+        <div class="status-cell">
+          <span class="status-label">Turn</span>
+          <span id="status-turn" class="status-value">0</span>
+        </div>
+      </section>
+
+      <main id="transcript" class="transcript" aria-live="polite"></main>
+
+      <section class="chips" aria-label="Possible actions">
+        <div class="chips-head">
+          <button id="chips-toggle" type="button" class="ghost small">Show possible actions</button>
+          <span id="engine-note" class="engine-note">deterministic · wasm</span>
+        </div>
+        <div id="chips-list" class="chips-list" hidden></div>
+      </section>
+
+      <form id="composer" class="composer" autocomplete="off">
+        <input id="composer-input" type="text" placeholder="What do you do?" aria-label="What do you do?" />
+        <button id="composer-send" type="submit">Send</button>
+      </form>
+    </div>
+
+    <aside id="settings" class="settings" hidden>
+      <div class="settings-panel">
+        <div class="settings-head">
+          <h2>Settings</h2>
+          <button id="settings-close" type="button" class="ghost small">Done</button>
+        </div>
+
+        <fieldset>
+          <legend>Play mode</legend>
+          <label class="radio">
+            <input type="radio" name="mode" value="classic" checked />
+            <span>
+              <strong>Classic Mode</strong>
+              <em>Scripted + template narration. No model download, instant, fully deterministic.</em>
+            </span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="mode" value="ai" />
+            <span>
+              <strong>AI Mode</strong>
+              <em>A small language model narrates and interprets free text, in your browser.</em>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Model</legend>
+          <label class="field">
+            <span>Checkpoint</span>
+            <select id="model-select"></select>
+          </label>
+          <label class="field">
+            <span>Backend</span>
+            <select id="device-select">
+              <option value="wasm" selected>WebAssembly (works everywhere)</option>
+              <option value="webgpu">WebGPU (faster, if supported)</option>
+            </select>
+          </label>
+          <button id="load-model" type="button" class="primary">Load model</button>
+          <div class="progress" hidden>
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <p id="model-status" class="hint">
+            The model is downloaded from the Hugging Face Hub once, then cached by your browser.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Session</legend>
+          <button id="restart" type="button" class="ghost">Restart adventure</button>
+          <p class="hint">
+            The world is rebuilt from the same seed, so the same choices produce the same rolls.
+          </p>
+        </fieldset>
+      </div>
+    </aside>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
